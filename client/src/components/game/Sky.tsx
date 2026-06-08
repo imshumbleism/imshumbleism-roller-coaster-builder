@@ -43,24 +43,37 @@ export function Sky() {
     }
     return spokes;
   }, []);
-  
+  const snow = useMemo(() => {
+  const flakes: { x: number; y: number; z: number; size: number }[] = [];
+
+  for (let i = 0; i < 200; i++) {
+    flakes.push({
+      x: (Math.random() - 0.5) * 400,
+      y: Math.random() * 60 + 10,
+      z: (Math.random() - 0.5) * 400,
+      size: Math.random() * 0.6 + 0.2
+    });
+  }
+
+  return flakes;
+}, []);
   if (isNightMode) {
     return (
-      <>
-        <color attach="background" args={["#101025"]} />
-        <fog attach="fog" args={["#101025", 150, 500]} />
-        
-        <ambientLight intensity={0.4} color="#6688cc" />
-        <directionalLight position={[50, 50, 25]} intensity={0.5} color="#8899bb" />
-        
-        <pointLight position={[0, 30, 0]} intensity={2} color="#FFFFFF" distance={150} />
-        <pointLight position={[100, 40, -80]} intensity={1.5} color="#FF88FF" distance={100} />
-        <pointLight position={[-80, 35, 60]} intensity={1.5} color="#FFAA44" distance={100} />
-        
-        <mesh position={[-60, 45, -80]}>
-          <sphereGeometry args={[6, 32, 32]} />
-          <meshBasicMaterial color="#FFFFEE" />
-        </mesh>
+<>
+  <color attach="background" args={["#DDEEFF"]} />
+  <fog attach="fog" args={["#DDEEFF", 100, 400]} />
+
+  {snow.map((flake, i) => (
+    <mesh key={i} position={[flake.x, flake.y, flake.z]}>
+      <sphereGeometry args={[flake.size, 6, 6]} />
+      <meshBasicMaterial color="#FFFFFF" />
+    </mesh>
+  ))}
+
+    <mesh position={[50, 40, -50]}>
+      <sphereGeometry args={[8, 32, 32]} />
+      <meshBasicMaterial color="#FFFF88" />
+    </mesh>
         
         {stars.map((star, i) => (
           <mesh key={i} position={[star.x, star.y, star.z]}>
