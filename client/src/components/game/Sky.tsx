@@ -51,7 +51,7 @@ export function Sky() {
       x: (Math.random() - 0.5) * 400,
       y: Math.random() * 60 + 10,
       z: (Math.random() - 0.5) * 400,
-      size: Math.random() * 0.6 + 0.2
+      size: Math.random() * 0.3 + 0.1
     });
   }
 
@@ -60,8 +60,8 @@ export function Sky() {
   if (isNightMode) {
     return (
 <>
-  <color attach="background" args={["#DDEEFF"]} />
-  <fog attach="fog" args={["#DDEEFF", 100, 400]} />
+  <color attach="background" args={["#101025"]} />
+<fog attach="fog" args={["#101025", 100, 400]} />
 
   {snow.map((flake, i) => (
     <mesh key={i} position={[flake.x, flake.y, flake.z]}>
@@ -200,8 +200,8 @@ export function Sky() {
   
   return (
     <>
-<color attach="background" args={["#DDEEFF"]} />
-<fog attach="fog" args={["#DDEEFF", 100, 400]} />
+      <color attach="background" args={["#DDEEFF"]} />
+      <fog attach="fog" args={["#DDEEFF", 100, 400]} />
       
       <mesh position={[50, 40, -50]}>
         <sphereGeometry args={[8, 32, 32]} />
