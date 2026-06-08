@@ -38,20 +38,6 @@ export function Sky() {
     return s;
   }, []);
 
-  const ferrisWheel = useMemo(() => {
-    const spokes: { angle: number; color: string }[] = [];
-
-    for (let i = 0; i < 12; i++) {
-      spokes.push({
-        angle: (i / 12) * Math.PI * 2,
-        color: ["#FF0000", "#FFFF00", "#00FF00", "#0000FF", "#FF00FF", "#00FFFF"][i % 6]
-      });
-    }
-
-    return spokes;
-  }, []);
-
-  // ❄️ snow
   const snow = useRef(
     Array.from({ length: 200 }, () => ({
       x: (Math.random() - 0.5) * 400,
@@ -63,20 +49,42 @@ export function Sky() {
     }))
   );
 
-  // 🌲 TREES (FIXED — MUCH CLOSER)
+  // 🌲 BETTER TREE SPACING (NO CLUMPING)
   const trees = useMemo(() => {
     const t: { x: number; z: number; scale: number; tilt: number }[] = [];
 
-    for (let i = 0; i < 80; i++) {
-      const angle = Math.random() * Math.PI * 2;
+    const MIN_DISTANCE = 8;
 
-      // ✅ FIX: much smaller radius so you SEE them
-      const radius = 30 + Math.random() * 70;
+    const positions: [number, number][] = [];
+
+    for (let i = 0; i < 80; i++) {
+      let tries = 0;
+      let x = 0;
+      let z = 0;
+      let ok = false;
+
+      while (!ok && tries < 20) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 40 + Math.random() * 110;
+
+        x = Math.cos(angle) * radius;
+        z = Math.sin(angle) * radius;
+
+        ok = positions.every(([px, pz]) => {
+          const dx = px - x;
+          const dz = pz - z;
+          return Math.sqrt(dx * dx + dz * dz) > MIN_DISTANCE;
+        });
+
+        tries++;
+      }
+
+      positions.push([x, z]);
 
       t.push({
-        x: Math.cos(angle) * radius,
-        z: Math.sin(angle) * radius,
-        scale: 0.9 + Math.random() * 1.3,
+        x,
+        z,
+        scale: 0.9 + Math.random() * 1.4,
         tilt: (Math.random() - 0.5) * 0.2
       });
     }
@@ -86,7 +94,7 @@ export function Sky() {
 
   const Tree = ({ x, z, scale, tilt }: any) => {
     return (
-      <group position={[x, 1, z]} rotation={[tilt, 0, tilt]} scale={scale}>
+      <group position={[x, 0, z]} rotation={[tilt, 0, tilt]} scale={scale}>
         {/* trunk */}
         <mesh position={[0, 2, 0]}>
           <cylinderGeometry args={[0.4, 0.6, 4, 8]} />
@@ -123,54 +131,40 @@ export function Sky() {
     });
   });
 
-  if (isNightMode) {
-    return (
-      <>
-        <color attach="background" args={["#101025"]} />
-        <fog attach="fog" args={["#0b0f1a", 60, 220]} />
+  return (
+    <>
+      <color attach="background" args={isNightMode ? ["#101025"] : ["#DDEEFF"]} />
+      <fog attach="fog" args={isNightMode ? ["#0b0f1a", 60, 220] : ["#DDEEFF", 80, 260]} />
 
-        {/* snow */}
-        {snow.current.map((flake, i) => (
+      {/* snow */}
+      {isNightMode &&
+        snow.current.map((flake, i) => (
           <mesh key={i} position={[flake.x, flake.y, flake.z]}>
             <sphereGeometry args={[flake.size, 6, 6]} />
             <meshBasicMaterial color="#FFFFFF" />
           </mesh>
         ))}
 
-        {/* 🌲 trees (NOW VISIBLE) */}
-        {trees.map((t, i) => (
-          <Tree key={i} {...t} />
-        ))}
-
-        <mesh position={[50, 40, -50]}>
-          <sphereGeometry args={[8, 32, 32]} />
-          <meshBasicMaterial color="#FFFF88" />
-        </mesh>
-
-        {stars.map((star, i) => (
-          <mesh key={i} position={[star.x, star.y, star.z]}>
-            <sphereGeometry args={[star.size, 6, 6]} />
-            <meshBasicMaterial color="#FFFFFF" />
-          </mesh>
-        ))}
-      </>
-    );
-  }
-
-  return (
-    <>
-      <color attach="background" args={["#DDEEFF"]} />
-      <fog attach="fog" args={["#DDEEFF", 80, 260]} />
-
-      {/* 🌲 trees (DAY MODE ALSO) */}
+      {/* 🌲 trees */}
       {trees.map((t, i) => (
         <Tree key={i} {...t} />
       ))}
 
-      <mesh position={[50, 40, -50]}>
-        <sphereGeometry args={[8, 32, 32]} />
-        <meshBasicMaterial color="#FFFF88" />
-      </mesh>
+      {isNightMode && (
+        <>
+          <mesh position={[50, 40, -50]}>
+            <sphereGeometry args={[8, 32, 32]} />
+            <meshBasicMaterial color="#FFFF88" />
+          </mesh>
+
+          {stars.map((star, i) => (
+            <mesh key={i} position={[star.x, star.y, star.z]}>
+              <sphereGeometry args={[star.size, 6, 6]} />
+              <meshBasicMaterial color="#FFFFFF" />
+            </mesh>
+          ))}
+        </>
+      )}
 
       <ambientLight intensity={0.4} />
 
