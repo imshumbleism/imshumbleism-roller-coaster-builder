@@ -83,7 +83,7 @@ export function Sky() {
     return (
       <>
         <color attach="background" args={["#101025"]} />
-        <fog attach="fog" args={["#101025", 30, 180]} />
+       <fog attach="fog" args={["#0b0f1a", 80, 300]} />
 
        
         {snow.current.map((flake, i) => (
@@ -153,7 +153,7 @@ export function Sky() {
   return (
     <>
       <color attach="background" args={["#DDEEFF"]} />
-      <fog attach="fog" args={["#DDEEFF", 40, 220]} />
+   <fog attach="fog" args={["#DDEEFF", 120, 380]} />
 
       <mesh position={[50, 40, -50]}>
         <sphereGeometry args={[8, 32, 32]} />
