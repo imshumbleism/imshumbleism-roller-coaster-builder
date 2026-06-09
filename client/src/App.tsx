@@ -15,41 +15,44 @@ function MusicController() {
   const { setDaylightMusic, setNightMusic, isMuted } = useAudio();
   const hasStartedRef = useRef(false);
 
+  // Create audio ONCE
   useEffect(() => {
     const base = import.meta.env.BASE_URL || "/";
 
-    // 🌞 DAY = Smooth Criminal
-    const dayMusic = new Audio(`${base}sounds/smoothcriminal.mp3`);
-    dayMusic.loop = true;
-    dayMusic.volume = 0.5;
+    const day = new Audio(`${base}sounds/smoothcriminal.mp3`);
+    day.loop = true;
+    day.volume = 0.5;
 
-    // 🌙 NIGHT = Billie Jean
-    const nightMusic = new Audio(`${base}sounds/billiejean.mp3`);
-    nightMusic.loop = true;
-    nightMusic.volume = 0.5;
+    const night = new Audio(`${base}sounds/billiejean.mp3`);
+    night.loop = true;
+    night.volume = 0.5;
 
-    setDaylightMusic(dayMusic);
-    setNightMusic(nightMusic);
+    setDaylightMusic(day);
+    setNightMusic(night);
 
     return () => {
-      dayMusic.pause();
-      nightMusic.pause();
+      day.pause();
+      night.pause();
+      day.src = "";
+      night.src = "";
     };
-  }, []);
+  }, [setDaylightMusic, setNightMusic]);
 
+  // Start music once user interacts
   useEffect(() => {
     const start = () => {
       if (hasStartedRef.current) return;
       hasStartedRef.current = true;
 
+      const { daylightMusic, nightMusic } = useAudio.getState();
+      const isNight = useRollerCoaster.getState().isNightMode;
+
       if (isMuted) return;
 
-      const audio = useAudio.getState();
-
-      if (isNightMode) {
-        audio.playNightMusic();
+      if (isNight) {
+        nightMusic?.play().catch(() => {});
       } else {
-        audio.playDaylightMusic();
+        daylightMusic?.play().catch(() => {});
       }
 
       document.removeEventListener("click", start);
@@ -63,25 +66,38 @@ function MusicController() {
       document.removeEventListener("click", start);
       document.removeEventListener("keydown", start);
     };
-  }, [isNightMode, isMuted]);
+  }, [isMuted]);
 
+  // Switch music cleanly
   useEffect(() => {
     if (!hasStartedRef.current) return;
 
-    const audio = useAudio.getState();
+    const { daylightMusic, nightMusic } = useAudio.getState();
 
     if (isMuted) {
-      audio.stopDaylightMusic();
-      audio.stopNightMusic();
+      daylightMusic?.pause();
+      nightMusic?.pause();
       return;
     }
 
     if (isNightMode) {
-      audio.stopDaylightMusic();
-      audio.playNightMusic();
+      if (daylightMusic) {
+        daylightMusic.pause();
+        daylightMusic.currentTime = 0;
+      }
+      if (nightMusic) {
+        nightMusic.currentTime = 0;
+        nightMusic.play().catch(() => {});
+      }
     } else {
-      audio.stopNightMusic();
-      audio.playDaylightMusic();
+      if (nightMusic) {
+        nightMusic.pause();
+        nightMusic.currentTime = 0;
+      }
+      if (daylightMusic) {
+        daylightMusic.currentTime = 0;
+        daylightMusic.play().catch(() => {});
+      }
     }
   }, [isNightMode, isMuted]);
 
