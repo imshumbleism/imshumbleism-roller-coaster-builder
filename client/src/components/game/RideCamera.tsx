@@ -274,7 +274,7 @@ export function RideCamera() {
     let speed: number;
     
     if (hasChainLift && rideProgress < firstPeakProgress) {
-      const chainSpeed = 0.9 * rideSpeed;
+      const chainSpeed = 1.5 * rideSpeed;
       speed = chainSpeed;
       maxHeightReached.current = Math.max(maxHeightReached.current, currentHeight);
     } else {
