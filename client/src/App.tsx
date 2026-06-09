@@ -26,7 +26,7 @@ function MusicController() {
 useEffect(() => {
   const base = import.meta.env.BASE_URL || "/";
 
-  // 🌞 DAY MUSIC - Smooth Criminal
+  //  DAY MUSIC - Smooth Criminal
   const dayMusic = new Audio(
     `${base}sounds/Michael_Jackson_-_Smooth_Criminal_(mp3.pm).mp3`
   );
@@ -34,7 +34,7 @@ useEffect(() => {
   dayMusic.volume = 0.5;
   setDaylightMusic(dayMusic);
 
-  // 🌙 NIGHT MUSIC - Billie Jean
+  //  NIGHT MUSIC - Billie Jean
   const nightMusicAudio = new Audio(
     `${base}sounds/Michael Jackson - Billie Jean (Official Video).mp3`
   );
