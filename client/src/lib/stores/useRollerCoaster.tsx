@@ -164,10 +164,7 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
   isLooped: false,
   hasChainLift: true,
   showWoodSupports: true,
-
-  // default NIGHT MODE ON (and Billie Jean loaded)
   isNightMode: true,
-
   cameraTarget: null,
   savedCoasters: loadSavedCoasters(),
   currentCoasterName: null,
@@ -180,7 +177,7 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
   setHasChainLift: (hasChain) => set({ hasChainLift: hasChain }),
   setShowWoodSupports: (show) => set({ showWoodSupports: show }),
 
-  // 🌙 NIGHT MODE + MUSIC SWITCH
+  // 🌙 FIXED NIGHT MODE MUSIC (Billie Jean)
   setIsNightMode: (night) => {
     set({ isNightMode: night });
 
@@ -189,11 +186,15 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
     if (night) {
       audio.stopDaylightMusic();
 
-      // 🎵 Billie Jean (Michael Jackson)
-      if (audio.nightMusic) {
-        audio.nightMusic.src = "/billie_jean.mp3";
-        audio.nightMusic.load();
-      }
+      // stop previous night music cleanly
+      audio.stopNightMusic();
+
+      // create / replace night music
+      const song = new Audio("/billie_jean.mp3");
+      song.loop = true;
+      song.volume = 0.5;
+
+      audio.setNightMusic(song);
 
       audio.playNightMusic();
     } else {
@@ -211,32 +212,29 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
 
   updateTrackPoint: (id, position) => {
     set((state) => ({
-      trackPoints: state.trackPoints.map((point) =>
-        point.id === id ? { ...point, position: position.clone() } : point
+      trackPoints: state.trackPoints.map((p) =>
+        p.id === id ? { ...p, position: position.clone() } : p
       ),
     }));
   },
 
   updateTrackPointTilt: (id, tilt) => {
     set((state) => ({
-      trackPoints: state.trackPoints.map((point) =>
-        point.id === id ? { ...point, tilt } : point
+      trackPoints: state.trackPoints.map((p) =>
+        p.id === id ? { ...p, tilt } : p
       ),
     }));
   },
 
   removeTrackPoint: (id) => {
     set((state) => ({
-      trackPoints: state.trackPoints.filter((point) => point.id !== id),
+      trackPoints: state.trackPoints.filter((p) => p.id !== id),
       selectedPointId: state.selectedPointId === id ? null : state.selectedPointId,
     }));
   },
 
   createLoopAtPoint: (id) => {
     set((state) => {
-      const pointIndex = state.trackPoints.findIndex((p) => p.id === id);
-      if (pointIndex === -1) return state;
-
       const loopSegment: LoopSegment = {
         id: `loop-${Date.now()}`,
         entryPointId: id,
@@ -275,7 +273,8 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
     }
   },
 
-  stopRide: () => set({ mode: "build", isRiding: false, rideProgress: 0 }),
+  stopRide: () =>
+    set({ mode: "build", isRiding: false, rideProgress: 0 }),
 
   saveCoaster: (name: string) => {
     const state = get();
