@@ -12,46 +12,31 @@ import { useAudio } from "./lib/stores/useAudio";
 
 function MusicController() {
   const { isNightMode } = useRollerCoaster();
-  const {
-    setDaylightMusic,
-    daylightMusic,
-    setNightMusic,
-    nightMusic,
-    isMuted,
-  } = useAudio();
-
+  const { setDaylightMusic, setNightMusic, isMuted } = useAudio();
   const hasStartedRef = useRef(false);
 
-// Load sounds once
-useEffect(() => {
-  const base = import.meta.env.BASE_URL || "/";
+  useEffect(() => {
+    const base = import.meta.env.BASE_URL || "/";
 
-  //  DAY MUSIC - Smooth Criminal
-  const dayMusic = new Audio(
-    `${base}sounds/smoothcriminal.mp3`
-  );
-  dayMusic.loop = true;
-  dayMusic.volume = 0.5;
-  setDaylightMusic(dayMusic);
+    // 🌞 DAY = Smooth Criminal
+    const dayMusic = new Audio(`${base}sounds/smoothcriminal.mp3`);
+    dayMusic.loop = true;
+    dayMusic.volume = 0.5;
 
-  //  NIGHT MUSIC - Billie Jean
-  const nightMusicAudio = new Audio(
-    `${base}sounds/billiejean.mp3`
-  );
-  nightMusicAudio.loop = true;
-  nightMusicAudio.volume = 0.5;
-  setNightMusic(nightMusicAudio);
+    // 🌙 NIGHT = Billie Jean
+    const nightMusic = new Audio(`${base}sounds/billiejean.mp3`);
+    nightMusic.loop = true;
+    nightMusic.volume = 0.5;
 
-  return () => {
-    dayMusic.pause();
-    dayMusic.src = "";
+    setDaylightMusic(dayMusic);
+    setNightMusic(nightMusic);
 
-    nightMusicAudio.pause();
-    nightMusicAudio.src = "";
-  };
-}, [setDaylightMusic, setNightMusic]);
+    return () => {
+      dayMusic.pause();
+      nightMusic.pause();
+    };
+  }, []);
 
-  // Start music after user interaction (browser requirement)
   useEffect(() => {
     const start = () => {
       if (hasStartedRef.current) return;
@@ -59,10 +44,12 @@ useEffect(() => {
 
       if (isMuted) return;
 
-      if (isNightMode && nightMusic) {
-        nightMusic.play().catch(() => {});
-      } else if (!isNightMode && daylightMusic) {
-        daylightMusic.play().catch(() => {});
+      const audio = useAudio.getState();
+
+      if (isNightMode) {
+        audio.playNightMusic();
+      } else {
+        audio.playDaylightMusic();
       }
 
       document.removeEventListener("click", start);
@@ -76,32 +63,27 @@ useEffect(() => {
       document.removeEventListener("click", start);
       document.removeEventListener("keydown", start);
     };
-  }, [isNightMode, daylightMusic, nightMusic, isMuted]);
+  }, [isNightMode, isMuted]);
 
-  // Switch music when mode changes
   useEffect(() => {
     if (!hasStartedRef.current) return;
 
+    const audio = useAudio.getState();
+
     if (isMuted) {
-      daylightMusic?.pause();
-      nightMusic?.pause();
+      audio.stopDaylightMusic();
+      audio.stopNightMusic();
       return;
     }
 
     if (isNightMode) {
-      daylightMusic?.pause();
-      if (nightMusic) {
-        nightMusic.currentTime = 0;
-        nightMusic.play().catch(() => {});
-      }
+      audio.stopDaylightMusic();
+      audio.playNightMusic();
     } else {
-      nightMusic?.pause();
-      if (daylightMusic) {
-        daylightMusic.currentTime = 0;
-        daylightMusic.play().catch(() => {});
-      }
+      audio.stopNightMusic();
+      audio.playDaylightMusic();
     }
-  }, [isNightMode, daylightMusic, nightMusic, isMuted]);
+  }, [isNightMode, isMuted]);
 
   return null;
 }
