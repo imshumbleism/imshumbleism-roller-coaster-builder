@@ -6,18 +6,17 @@ interface AudioState {
   nightMusic: HTMLAudioElement | null;
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
+
   isMuted: boolean;
   isDaylightMusicPlaying: boolean;
   isNightMusicPlaying: boolean;
-  
-  // Setter functions
+
   setBackgroundMusic: (music: HTMLAudioElement) => void;
   setDaylightMusic: (music: HTMLAudioElement) => void;
   setNightMusic: (music: HTMLAudioElement) => void;
   setHitSound: (sound: HTMLAudioElement) => void;
   setSuccessSound: (sound: HTMLAudioElement) => void;
-  
-  // Control functions
+
   toggleMute: () => void;
   playHit: () => void;
   playSuccess: () => void;
@@ -33,102 +32,87 @@ export const useAudio = create<AudioState>((set, get) => ({
   nightMusic: null,
   hitSound: null,
   successSound: null,
+
   isMuted: false,
   isDaylightMusicPlaying: false,
   isNightMusicPlaying: false,
-  
+
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setDaylightMusic: (music) => set({ daylightMusic: music }),
   setNightMusic: (music) => set({ nightMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
-  
+
   toggleMute: () => {
-    const { isMuted } = get();
-    const newMutedState = !isMuted;
-    
-    // Just update the muted state
-    set({ isMuted: newMutedState });
-    
-    // Log the change
-    console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
+    set({ isMuted: !get().isMuted });
   },
-  
+
   playHit: () => {
     const { hitSound, isMuted } = get();
-    if (hitSound) {
-      // If sound is muted, don't play anything
-      if (isMuted) {
-        console.log("Hit sound skipped (muted)");
-        return;
-      }
-      
-      // Clone the sound to allow overlapping playback
-      const soundClone = hitSound.cloneNode() as HTMLAudioElement;
-      soundClone.volume = 0.3;
-      soundClone.play().catch(error => {
-        console.log("Hit sound play prevented:", error);
-      });
-    }
+    if (!hitSound || isMuted) return;
+
+    const s = hitSound.cloneNode() as HTMLAudioElement;
+    s.volume = 0.3;
+    s.play().catch(() => {});
   },
-  
+
   playSuccess: () => {
     const { successSound, isMuted } = get();
-    if (successSound) {
-      // If sound is muted, don't play anything
-      if (isMuted) {
-        console.log("Success sound skipped (muted)");
-        return;
-      }
-      
-      successSound.currentTime = 0;
-      successSound.play().catch(error => {
-        console.log("Success sound play prevented:", error);
-      });
-    }
+    if (!successSound || isMuted) return;
+
+    successSound.currentTime = 0;
+    successSound.play().catch(() => {});
   },
-  
+
   playDaylightMusic: () => {
     const { daylightMusic, isMuted, isDaylightMusicPlaying } = get();
-    if (daylightMusic && !isDaylightMusicPlaying) {
-      daylightMusic.loop = true;
-      daylightMusic.volume = 0.5;
-      
-      if (!isMuted) {
-        daylightMusic.play().catch(() => {});
-      }
-      set({ isDaylightMusicPlaying: true });
+
+    if (!daylightMusic || isDaylightMusicPlaying) return;
+
+    daylightMusic.loop = true;
+    daylightMusic.volume = 0.5;
+
+    if (!isMuted) {
+      daylightMusic.play().catch(() => {});
     }
+
+    set({ isDaylightMusicPlaying: true });
   },
-  
+
   stopDaylightMusic: () => {
     const { daylightMusic } = get();
-    if (daylightMusic) {
-      daylightMusic.pause();
-      daylightMusic.currentTime = 0;
-      set({ isDaylightMusicPlaying: false });
-    }
+
+    if (!daylightMusic) return;
+
+    daylightMusic.pause();
+    daylightMusic.currentTime = 0;
+
+    set({ isDaylightMusicPlaying: false });
   },
-  
+
   playNightMusic: () => {
     const { nightMusic, isMuted, isNightMusicPlaying } = get();
-    if (nightMusic && !isNightMusicPlaying) {
-      nightMusic.loop = true;
-      nightMusic.volume = 0.5;
-      
-      if (!isMuted) {
-        nightMusic.play().catch(() => {});
-      }
-      set({ isNightMusicPlaying: true });
+
+    if (!nightMusic || isNightMusicPlaying) return;
+
+    nightMusic.loop = true;
+    nightMusic.volume = 0.5;
+
+    if (!isMuted) {
+      nightMusic.play().catch(() => {});
     }
+
+    set({ isNightMusicPlaying: true });
   },
-  
+
   stopNightMusic: () => {
     const { nightMusic } = get();
-    if (nightMusic) {
-      nightMusic.pause();
-      nightMusic.currentTime = 0;
-      set({ isNightMusicPlaying: false });
-    }
+
+    if (!nightMusic) return;
+
+    nightMusic.pause();
+    nightMusic.currentTime = 0;
+
+    set({ isNightMusicPlaying: false });
   }
 }));
