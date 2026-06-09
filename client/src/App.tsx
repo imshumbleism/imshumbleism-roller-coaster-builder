@@ -22,27 +22,34 @@ function MusicController() {
 
   const hasStartedRef = useRef(false);
 
-  // Load sounds once
-  useEffect(() => {
-    const base = import.meta.env.BASE_URL || "/";
+// Load sounds once
+useEffect(() => {
+  const base = import.meta.env.BASE_URL || "/";
 
-    // 🌞 DAY MUSIC
-    const dayMusic = new Audio(`${base}sounds/music.mp3`);
-    dayMusic.loop = true;
-    dayMusic.volume = 0.5;
-    setDaylightMusic(dayMusic);
+  // 🌞 DAY MUSIC - Smooth Criminal
+  const dayMusic = new Audio(
+    `${base}sounds/Michael_Jackson_-_Smooth_Criminal_(mp3.pm).mp3`
+  );
+  dayMusic.loop = true;
+  dayMusic.volume = 0.5;
+  setDaylightMusic(dayMusic);
 
-    // 🌙 NIGHT MUSIC (your file)
-    const nightMusicAudio = new Audio(`${base}sounds/lovelyday.mp3`);
-    nightMusicAudio.loop = true;
-    nightMusicAudio.volume = 0.5;
-    setNightMusic(nightMusicAudio);
+  // 🌙 NIGHT MUSIC - Billie Jean
+  const nightMusicAudio = new Audio(
+    `${base}sounds/Michael Jackson - Billie Jean (Official Video).mp3`
+  );
+  nightMusicAudio.loop = true;
+  nightMusicAudio.volume = 0.5;
+  setNightMusic(nightMusicAudio);
 
-    return () => {
-      dayMusic.pause();
-      nightMusicAudio.pause();
-    };
-  }, [setDaylightMusic, setNightMusic]);
+  return () => {
+    dayMusic.pause();
+    dayMusic.src = "";
+
+    nightMusicAudio.pause();
+    nightMusicAudio.src = "";
+  };
+}, [setDaylightMusic, setNightMusic]);
 
   // Start music after user interaction (browser requirement)
   useEffect(() => {
