@@ -278,7 +278,7 @@ export function RideCamera() {
       speed = chainSpeed;
       maxHeightReached.current = Math.max(maxHeightReached.current, currentHeight);
     } else {
-      const constantSpeed = 12.0;
+      const constantSpeed = 17.0;
       speed = constantSpeed * rideSpeed;
     }
     
