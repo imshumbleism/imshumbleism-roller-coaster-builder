@@ -28,7 +28,7 @@ useEffect(() => {
 
   //  DAY MUSIC - Smooth Criminal
   const dayMusic = new Audio(
-    `${base}sounds/Michael_Jackson_-_Smooth_Criminal_(mp3.pm).mp3`
+    `${base}sounds/smoothcriminal.mp3`
   );
   dayMusic.loop = true;
   dayMusic.volume = 0.5;
@@ -36,7 +36,7 @@ useEffect(() => {
 
   //  NIGHT MUSIC - Billie Jean
   const nightMusicAudio = new Audio(
-    `${base}sounds/Michael Jackson - Billie Jean (Official Video).mp3`
+    `${base}sounds/billiejean.mp3`
   );
   nightMusicAudio.loop = true;
   nightMusicAudio.volume = 0.5;
