@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import * as THREE from "three";
-import { useAudio } from "./useAudio";
 
 export type CoasterMode = "build" | "ride" | "preview";
 
@@ -177,31 +176,7 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
   setHasChainLift: (hasChain) => set({ hasChainLift: hasChain }),
   setShowWoodSupports: (show) => set({ showWoodSupports: show }),
 
-  // 🌙 FIXED NIGHT MODE MUSIC (Billie Jean)
-  setIsNightMode: (night) => {
-    set({ isNightMode: night });
-
-    const audio = useAudio.getState();
-
-    if (night) {
-      audio.stopDaylightMusic();
-
-      // stop previous night music cleanly
-      audio.stopNightMusic();
-
-      // create / replace night music
-      const song = new Audio("/billie_jean.mp3");
-      song.loop = true;
-      song.volume = 0.5;
-
-      audio.setNightMusic(song);
-
-      audio.playNightMusic();
-    } else {
-      audio.stopNightMusic();
-      audio.playDaylightMusic();
-    }
-  },
+  setIsNightMode: (night) => set({ isNightMode: night }),
 
   addTrackPoint: (position) => {
     const id = `point-${++pointCounter}`;
