@@ -22,12 +22,12 @@ function MusicController() {
   useEffect(() => {
     const base = import.meta.env.BASE_URL || '/';
    
-    const dayMusic = new Audio(`${base}sounds/Theme-Park-Tycoon-2-FULL-SOUNDTRACK.mp3`);
+    const dayMusic = new Audio(`${base}sounds/lovelyday.mp3`);
     dayMusic.loop = true;
     dayMusic.volume = 0.5;
     setDaylightMusic(dayMusic);
    
-    const nightMusicAudio = new Audio(`${base}sounds/Car-Crushers-2-Dealership.opus`);
+    const nightMusicAudio = new Audio(`${base}sounds/music.mp3`);
     nightMusicAudio.loop = true;
     nightMusicAudio.volume = 0.5;
     setNightMusic(nightMusicAudio);
