@@ -19,11 +19,11 @@ function MusicController() {
   useEffect(() => {
     const base = import.meta.env.BASE_URL || "/";
 
-    const day = new Audio(`${base}sounds/I see you.mp3`);
+    const day = new Audio(`${base}sounds/lovelyday.mp3`);
     day.loop = true;
     day.volume = 0.5;
 
-    const night = new Audio(`${base}sounds/onlybill.mp3`);
+    const night = new Audio(`${base}sounds/music.mp3`);
     night.loop = true;
     night.volume = 0.5;
 
