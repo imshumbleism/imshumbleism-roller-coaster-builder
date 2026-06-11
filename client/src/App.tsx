@@ -13,121 +13,57 @@ import { useAudio } from "./lib/stores/useAudio";\
 function MusicController() {
   const { isNightMode } = useRollerCoaster();
 
-  const {
-    setDaylightMusic,
-    daylightMusic,
-    setNightMusic,
-    nightMusic,
-    isMuted,
-  } = useAudio();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const hasStartedRef = useRef(false);
-
-  // Load audio once
   useEffect(() => {
-    const dayMusic = new Audio("/sounds/song1.mp3");
-    dayMusic.loop = true;
-    dayMusic.volume = 0.5;
+    console.log("MusicController loaded");
 
-    dayMusic.oncanplaythrough = () => {
-      console.log("SONG1 LOADED");
-    };
+    const audio = new Audio("/sounds/song1.mp3");
+    audio.loop = true;
+    audio.volume = 0.5;
 
-    dayMusic.onerror = () => {
-      console.error("SONG1 FAILED");
-    };
+    audioRef.current = audio;
 
-    setDaylightMusic(dayMusic);
+    audio.addEventListener("canplaythrough", () => {
+      console.log("SONG LOADED");
+    });
 
-    const nightMusicAudio = new Audio("/sounds/song2.mp3");
-    nightMusicAudio.loop = true;
-    nightMusicAudio.volume = 0.5;
-
-    nightMusicAudio.oncanplaythrough = () => {
-      console.log("SONG2 LOADED");
-    };
-
-    nightMusicAudio.onerror = () => {
-      console.error("SONG2 FAILED");
-    };
-
-    setNightMusic(nightMusicAudio);
-
-    console.log("Audio objects created");
+    audio.addEventListener("error", () => {
+      console.error("SONG FAILED TO LOAD");
+    });
 
     return () => {
-      dayMusic.pause();
-      nightMusicAudio.pause();
+      audio.pause();
     };
-  }, [setDaylightMusic, setNightMusic]);
+  }, []);
 
-  // First user interaction starts music
   useEffect(() => {
-    const startMusicOnInteraction = () => {
-      if (hasStartedRef.current) return;
-      hasStartedRef.current = true;
+    const forcePlay = () => {
+      console.log("FORCE PLAY CLICKED");
 
-      console.log("User interaction detected");
-
-      if (isMuted) return;
-
-      const music = isNightMode ? nightMusic : daylightMusic;
-
-      if (!music) {
-        console.warn("Music not ready yet");
+      if (!audioRef.current) {
+        console.warn("No audio found");
         return;
       }
 
-      music
-        .play()
-        .then(() => console.log("Music started"))
-        .catch((err) => console.error("Play blocked:", err));
+      audioRef.current.currentTime = 0;
 
-      document.removeEventListener("click", startMusicOnInteraction);
-      document.removeEventListener("keydown", startMusicOnInteraction);
+      audioRef.current
+        .play()
+        .then(() => {
+          console.log("AUDIO IS PLAYING");
+        })
+        .catch((err) => {
+          console.error("PLAY BLOCKED BY BROWSER:", err);
+        });
     };
 
-    document.addEventListener("click", startMusicOnInteraction);
-    document.addEventListener("keydown", startMusicOnInteraction);
+    window.addEventListener("pointerdown", forcePlay, { once: true });
 
     return () => {
-      document.removeEventListener("click", startMusicOnInteraction);
-      document.removeEventListener("keydown", startMusicOnInteraction);
+      window.removeEventListener("pointerdown", forcePlay);
     };
-  }, [daylightMusic, nightMusic, isNightMode, isMuted]);
-
-  // Switch day/night music
-  useEffect(() => {
-    if (!hasStartedRef.current) return;
-
-    const current = isNightMode ? nightMusic : daylightMusic;
-    const previous = isNightMode ? daylightMusic : nightMusic;
-
-    if (previous) {
-      previous.pause();
-      previous.currentTime = 0;
-    }
-
-    if (current && !isMuted) {
-      current
-        .play()
-        .then(() =>
-          console.log(isNightMode ? "Night music playing" : "Day music playing")
-        )
-        .catch((err) => console.error("Switch failed:", err));
-    }
-  }, [isNightMode, daylightMusic, nightMusic, isMuted]);
-
-  // Mute control
-  useEffect(() => {
-    if (isMuted) {
-      daylightMusic?.pause();
-      nightMusic?.pause();
-    } else {
-      const music = isNightMode ? nightMusic : daylightMusic;
-      music?.play().catch(() => {});
-    }
-  }, [isMuted, daylightMusic, nightMusic, isNightMode]);
+  }, []);
 
   return null;
 }
