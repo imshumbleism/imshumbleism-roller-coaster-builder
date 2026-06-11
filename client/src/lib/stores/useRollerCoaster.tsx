@@ -3,20 +3,24 @@ import * as THREE from "three";
 
 export type CoasterMode = "build" | "ride" | "preview";
 
+// Loop segment descriptor - stored separately from track points
+// The actual loop frame (forward, up, right) is computed at runtime from the spline
+// Uses corkscrew helix geometry: advances forward by 'pitch' while rotating 360 degrees
 export interface LoopSegment {
   id: string;
-  entryPointId: string;
+  entryPointId: string;  // ID of track point where loop starts
   radius: number;
-  pitch: number;
+  pitch: number;  // Forward distance traveled during one full rotation (prevents intersection)
 }
 
 export interface TrackPoint {
   id: string;
   position: THREE.Vector3;
   tilt: number;
-  hasLoop?: boolean;
+  hasLoop?: boolean;  // True if a loop starts at this point
 }
 
+// Serializable versions for JSON storage
 interface SerializedLoopSegment {
   id: string;
   entryPointId: string;
@@ -42,6 +46,7 @@ export interface SavedCoaster {
   showWoodSupports: boolean;
 }
 
+// Serialization helpers
 function serializeVector3(v: THREE.Vector3): [number, number, number] {
   return [v.x, v.y, v.z];
 }
@@ -82,7 +87,7 @@ function deserializeLoopSegment(serialized: SerializedLoopSegment): LoopSegment 
     id: serialized.id,
     entryPointId: serialized.entryPointId,
     radius: serialized.radius,
-    pitch: serialized.pitch ?? 12,
+    pitch: serialized.pitch ?? 12,  // Default pitch for backwards compatibility
   };
 }
 
@@ -118,7 +123,7 @@ interface RollerCoasterState {
   cameraTarget: THREE.Vector3 | null;
   savedCoasters: SavedCoaster[];
   currentCoasterName: string | null;
-
+  
   setMode: (mode: CoasterMode) => void;
   setCameraTarget: (target: THREE.Vector3 | null) => void;
   addTrackPoint: (position: THREE.Vector3) => void;
@@ -139,7 +144,8 @@ interface RollerCoasterState {
   setIsNightMode: (night: boolean) => void;
   startRide: () => void;
   stopRide: () => void;
-
+  
+  // Save/Load functionality
   saveCoaster: (name: string) => void;
   loadCoaster: (id: string) => void;
   deleteCoaster: (id: string) => void;
@@ -159,103 +165,118 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
   isRiding: false,
   rideSpeed: 1.0,
   isDraggingPoint: false,
-  isAddingPoints: false,
+  isAddingPoints: true,
   isLooped: false,
   hasChainLift: true,
-  showWoodSupports: true,
-  isNightMode: true,
+  showWoodSupports: false,
+  isNightMode: false,
   cameraTarget: null,
   savedCoasters: loadSavedCoasters(),
   currentCoasterName: null,
-
+  
   setMode: (mode) => set({ mode }),
+  
   setCameraTarget: (target) => set({ cameraTarget: target }),
+  
   setIsDraggingPoint: (dragging) => set({ isDraggingPoint: dragging }),
+  
   setIsAddingPoints: (adding) => set({ isAddingPoints: adding }),
+  
   setIsLooped: (looped) => set({ isLooped: looped }),
+  
   setHasChainLift: (hasChain) => set({ hasChainLift: hasChain }),
+  
   setShowWoodSupports: (show) => set({ showWoodSupports: show }),
-
+  
   setIsNightMode: (night) => set({ isNightMode: night }),
-
+  
   addTrackPoint: (position) => {
     const id = `point-${++pointCounter}`;
     set((state) => ({
       trackPoints: [...state.trackPoints, { id, position: position.clone(), tilt: 0 }],
     }));
   },
-
+  
   updateTrackPoint: (id, position) => {
     set((state) => ({
-      trackPoints: state.trackPoints.map((p) =>
-        p.id === id ? { ...p, position: position.clone() } : p
+      trackPoints: state.trackPoints.map((point) =>
+        point.id === id ? { ...point, position: position.clone() } : point
       ),
     }));
   },
-
+  
   updateTrackPointTilt: (id, tilt) => {
     set((state) => ({
-      trackPoints: state.trackPoints.map((p) =>
-        p.id === id ? { ...p, tilt } : p
+      trackPoints: state.trackPoints.map((point) =>
+        point.id === id ? { ...point, tilt } : point
       ),
     }));
   },
-
+  
   removeTrackPoint: (id) => {
     set((state) => ({
-      trackPoints: state.trackPoints.filter((p) => p.id !== id),
+      trackPoints: state.trackPoints.filter((point) => point.id !== id),
       selectedPointId: state.selectedPointId === id ? null : state.selectedPointId,
     }));
   },
-
+  
   createLoopAtPoint: (id) => {
     set((state) => {
+      const pointIndex = state.trackPoints.findIndex((p) => p.id === id);
+      if (pointIndex === -1) return state;
+      
+      const entryPoint = state.trackPoints[pointIndex];
+      if (entryPoint.hasLoop) return state;
+      
+      const loopRadius = 5;
+      const loopPitch = 12;  // Forward distance during one rotation (prevents intersection)
+      
       const loopSegment: LoopSegment = {
         id: `loop-${Date.now()}`,
         entryPointId: id,
-        radius: 5,
-        pitch: 12,
+        radius: loopRadius,
+        pitch: loopPitch,
       };
-
+      
+      const newTrackPoints = state.trackPoints.map((p) =>
+        p.id === id ? { ...p, hasLoop: true } : p
+      );
+      
       return {
-        trackPoints: state.trackPoints.map((p) =>
-          p.id === id ? { ...p, hasLoop: true } : p
-        ),
+        trackPoints: newTrackPoints,
         loopSegments: [...state.loopSegments, loopSegment],
       };
     });
   },
-
+  
   selectPoint: (id) => set({ selectedPointId: id }),
-
-  clearTrack: () =>
-    set({
-      trackPoints: [],
-      loopSegments: [],
-      selectedPointId: null,
-      rideProgress: 0,
-      isRiding: false,
-    }),
-
+  
+  clearTrack: () => {
+    set({ trackPoints: [], loopSegments: [], selectedPointId: null, rideProgress: 0, isRiding: false });
+  },
+  
   setRideProgress: (progress) => set({ rideProgress: progress }),
+  
   setIsRiding: (riding) => set({ isRiding: riding }),
+  
   setRideSpeed: (speed) => set({ rideSpeed: speed }),
-
+  
   startRide: () => {
     const { trackPoints } = get();
     if (trackPoints.length >= 2) {
       set({ mode: "ride", isRiding: true, rideProgress: 0 });
     }
   },
-
-  stopRide: () =>
-    set({ mode: "build", isRiding: false, rideProgress: 0 }),
-
+  
+  stopRide: () => {
+    set({ mode: "build", isRiding: false, rideProgress: 0 });
+  },
+  
+  // Save/Load functionality
   saveCoaster: (name: string) => {
     const state = get();
     const id = `coaster-${Date.now()}`;
-
-    const saved: SavedCoaster = {
+    const savedCoaster: SavedCoaster = {
       id,
       name,
       timestamp: Date.now(),
@@ -265,48 +286,102 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
       hasChainLift: state.hasChainLift,
       showWoodSupports: state.showWoodSupports,
     };
-
+    
     const coasters = loadSavedCoasters();
-    coasters.push(saved);
+    coasters.push(savedCoaster);
     persistSavedCoasters(coasters);
-
+    
     set({ savedCoasters: coasters, currentCoasterName: name });
   },
-
+  
   loadCoaster: (id: string) => {
-    const coasters = loadSavedCoasters();
-    const coaster = coasters.find((c) => c.id === id);
-    if (!coaster) return;
-
-    set({
-      trackPoints: coaster.trackPoints.map(deserializeTrackPoint),
-      loopSegments: coaster.loopSegments.map(deserializeLoopSegment),
-      isLooped: coaster.isLooped,
-      hasChainLift: coaster.hasChainLift,
-      showWoodSupports: coaster.showWoodSupports,
-      mode: "build",
-      isRiding: false,
-      rideProgress: 0,
-    });
+    try {
+      const coasters = loadSavedCoasters();
+      const coaster = coasters.find(c => c.id === id);
+      if (!coaster || !Array.isArray(coaster.trackPoints)) return;
+      
+      const trackPoints = coaster.trackPoints.map(deserializeTrackPoint);
+      const loopSegments = (coaster.loopSegments || []).map(deserializeLoopSegment);
+      
+      // Update pointCounter to avoid ID collisions
+      const maxId = trackPoints.reduce((max, p) => {
+        const num = parseInt(p.id.replace('point-', ''), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
+      pointCounter = maxId;
+      
+      set({
+        trackPoints,
+        loopSegments,
+        isLooped: Boolean(coaster.isLooped),
+        hasChainLift: coaster.hasChainLift !== false,
+        showWoodSupports: Boolean(coaster.showWoodSupports),
+        currentCoasterName: coaster.name || "Untitled",
+        selectedPointId: null,
+        rideProgress: 0,
+        isRiding: false,
+        mode: "build",
+      });
+    } catch (e) {
+      console.error("Failed to load coaster:", e);
+    }
   },
-
+  
   deleteCoaster: (id: string) => {
-    const coasters = loadSavedCoasters().filter((c) => c.id !== id);
+    const coasters = loadSavedCoasters().filter(c => c.id !== id);
     persistSavedCoasters(coasters);
     set({ savedCoasters: coasters });
   },
-
+  
   exportCoaster: (id: string) => {
     const coasters = loadSavedCoasters();
-    const coaster = coasters.find((c) => c.id === id);
-    return coaster ? JSON.stringify(coaster, null, 2) : null;
+    const coaster = coasters.find(c => c.id === id);
+    if (!coaster) return null;
+    return JSON.stringify(coaster, null, 2);
   },
-
-  importCoaster: (json: string) => {
+  
+  importCoaster: (jsonString: string) => {
     try {
-      const coaster = JSON.parse(json);
+      const coaster = JSON.parse(jsonString);
+      
+      // Validate required fields
+      if (!coaster || typeof coaster !== 'object') return false;
+      if (typeof coaster.name !== 'string' || !coaster.name.trim()) return false;
+      if (!Array.isArray(coaster.trackPoints)) return false;
+      
+      // Validate each track point has required structure
+      for (const pt of coaster.trackPoints) {
+        if (!pt || typeof pt !== 'object') return false;
+        if (!Array.isArray(pt.position) || pt.position.length !== 3) return false;
+        if (!pt.position.every((n: unknown) => typeof n === 'number' && isFinite(n))) return false;
+        if (typeof pt.tilt !== 'number') return false;
+        if (typeof pt.id !== 'string') return false;
+        
+        // Validate loopMeta if present
+        if (pt.loopMeta) {
+          const lm = pt.loopMeta;
+          if (!Array.isArray(lm.entryPos) || lm.entryPos.length !== 3) return false;
+          if (!Array.isArray(lm.forward) || lm.forward.length !== 3) return false;
+          if (!Array.isArray(lm.up) || lm.up.length !== 3) return false;
+          if (!Array.isArray(lm.right) || lm.right.length !== 3) return false;
+          if (typeof lm.radius !== 'number' || typeof lm.theta !== 'number') return false;
+        }
+      }
+      
+      // Assign new ID to avoid conflicts
+      const validCoaster: SavedCoaster = {
+        id: `coaster-${Date.now()}`,
+        name: coaster.name.trim(),
+        timestamp: Date.now(),
+        trackPoints: coaster.trackPoints,
+        loopSegments: coaster.loopSegments || [],
+        isLooped: Boolean(coaster.isLooped),
+        hasChainLift: coaster.hasChainLift !== false,
+        showWoodSupports: Boolean(coaster.showWoodSupports),
+      };
+      
       const coasters = loadSavedCoasters();
-      coasters.push(coaster);
+      coasters.push(validCoaster);
       persistSavedCoasters(coasters);
       set({ savedCoasters: coasters });
       return true;
@@ -314,7 +389,7 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
       return false;
     }
   },
-
+  
   refreshSavedCoasters: () => {
     set({ savedCoasters: loadSavedCoasters() });
   },
