@@ -13,57 +13,108 @@ import { useAudio } from "./lib/stores/useAudio";\
 function MusicController() {
   const { isNightMode } = useRollerCoaster();
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    setDaylightMusic,
+    setNightMusic,
+    daylightMusic,
+    nightMusic,
+    isMuted,
+  } = useAudio();
 
+  const hasStartedRef = useRef(false);
+
+  // Load both songs once
   useEffect(() => {
-    console.log("MusicController loaded");
+    console.log("Loading music system...");
 
-    const audio = new Audio("/sounds/song1.mp3");
-    audio.loop = true;
-    audio.volume = 0.5;
+    const day = new Audio("/sounds/music.mp3");
+    day.loop = true;
+    day.volume = 0.5;
 
-    audioRef.current = audio;
+    const night = new Audio("/sounds/lovelyday.mp3");
+    night.loop = true;
+    night.volume = 0.5;
 
-    audio.addEventListener("canplaythrough", () => {
-      console.log("SONG LOADED");
+    day.addEventListener("canplaythrough", () => {
+      console.log("DAY MUSIC READY");
     });
 
-    audio.addEventListener("error", () => {
-      console.error("SONG FAILED TO LOAD");
+    night.addEventListener("canplaythrough", () => {
+      console.log("NIGHT MUSIC READY");
     });
+
+    day.addEventListener("error", () => {
+      console.error("DAY MUSIC FAILED");
+    });
+
+    night.addEventListener("error", () => {
+      console.error("NIGHT MUSIC FAILED");
+    });
+
+    setDaylightMusic(day);
+    setNightMusic(night);
 
     return () => {
-      audio.pause();
+      day.pause();
+      night.pause();
     };
-  }, []);
+  }, [setDaylightMusic, setNightMusic]);
 
+  // FIRST CLICK STARTS AUDIO (required by Chrome)
   useEffect(() => {
-    const forcePlay = () => {
-      console.log("FORCE PLAY CLICKED");
+    const start = () => {
+      if (hasStartedRef.current) return;
+      hasStartedRef.current = true;
 
-      if (!audioRef.current) {
-        console.warn("No audio found");
+      console.log("USER STARTED AUDIO");
+
+      const current = isNightMode ? nightMusic : daylightMusic;
+
+      if (!current) {
+        console.warn("Music not loaded yet");
         return;
       }
 
-      audioRef.current.currentTime = 0;
+      current.currentTime = 0;
 
-      audioRef.current
+      current
         .play()
-        .then(() => {
-          console.log("AUDIO IS PLAYING");
-        })
-        .catch((err) => {
-          console.error("PLAY BLOCKED BY BROWSER:", err);
-        });
+        .then(() => console.log("MUSIC PLAYING"))
+        .catch((err) => console.error("PLAY BLOCKED:", err));
     };
 
-    window.addEventListener("pointerdown", forcePlay, { once: true });
+    window.addEventListener("pointerdown", start, { once: true });
 
     return () => {
-      window.removeEventListener("pointerdown", forcePlay);
+      window.removeEventListener("pointerdown", start);
     };
-  }, []);
+  }, [daylightMusic, nightMusic, isNightMode]);
+
+  // SWITCH DAY / NIGHT MUSIC
+  useEffect(() => {
+    if (!hasStartedRef.current) return;
+
+    const current = isNightMode ? nightMusic : daylightMusic;
+    const previous = isNightMode ? daylightMusic : nightMusic;
+
+    previous?.pause();
+    if (previous) previous.currentTime = 0;
+
+    if (current && !isMuted) {
+      current
+        .play()
+        .then(() => console.log(isNightMode ? "NIGHT PLAYING" : "DAY PLAYING"))
+        .catch((err) => console.error("SWITCH FAILED:", err));
+    }
+  }, [isNightMode, daylightMusic, nightMusic, isMuted]);
+
+  // MUTE CONTROL
+  useEffect(() => {
+    if (isMuted) {
+      daylightMusic?.pause();
+      nightMusic?.pause();
+    }
+  }, [isMuted, daylightMusic, nightMusic]);
 
   return null;
 }
