@@ -12,131 +12,136 @@ import { useAudio } from "./lib/stores/useAudio";
 
 function MusicController() {
   const { isNightMode } = useRollerCoaster();
+
   const {
-    setDaylightMusic, daylightMusic,
-    setNightMusic, nightMusic,
-    isMuted
+    setDaylightMusic,
+    daylightMusic,
+    setNightMusic,
+    nightMusic,
+    isMuted,
   } = useAudio();
+
   const hasStartedRef = useRef(false);
- 
+
   useEffect(() => {
-    const base = import.meta.env.BASE_URL || '/';
-   
-    const dayMusic = new Audio(`${base}sounds/song1.mp3`);
+    const dayMusic = new Audio("/sounds/song1.mp3");
     dayMusic.loop = true;
     dayMusic.volume = 0.5;
+
+    dayMusic.oncanplaythrough = () => {
+      alert("SONG1 LOADED");
+    };
+
+    dayMusic.onerror = () => {
+      alert("SONG1 FAILED");
+    };
+
     setDaylightMusic(dayMusic);
-   
-    const nightMusicAudio = new Audio(`${base}sounds/song2.mp3`);
+
+    const nightMusicAudio = new Audio("/sounds/song2.mp3");
     nightMusicAudio.loop = true;
     nightMusicAudio.volume = 0.5;
+
+    nightMusicAudio.oncanplaythrough = () => {
+      alert("SONG2 LOADED");
+    };
+
+    nightMusicAudio.onerror = () => {
+      alert("SONG2 FAILED");
+    };
+
     setNightMusic(nightMusicAudio);
-   
+
+    alert("Audio objects created");
+
     return () => {
       dayMusic.pause();
       dayMusic.src = "";
+
       nightMusicAudio.pause();
       nightMusicAudio.src = "";
     };
   }, [setDaylightMusic, setNightMusic]);
- 
+
   useEffect(() => {
     const startMusicOnInteraction = () => {
       if (hasStartedRef.current) return;
+
       hasStartedRef.current = true;
-     
+
       if (!isMuted) {
         if (isNightMode && nightMusic) {
-          nightMusic.play().catch(() => {});
+          alert("Trying to play NIGHT music");
+
+          nightMusic
+            .play()
+            .then(() => alert("Night music started"))
+            .catch(() => alert("Night music failed"));
         } else if (!isNightMode && daylightMusic) {
-          daylightMusic.play().catch(() => {});
+          alert("Trying to play DAY music");
+
+          daylightMusic
+            .play()
+            .then(() => alert("Day music started"))
+            .catch(() => alert("Day music failed"));
         }
       }
-     
-      document.removeEventListener('click', startMusicOnInteraction);
-      document.removeEventListener('keydown', startMusicOnInteraction);
+
+      document.removeEventListener("click", startMusicOnInteraction);
+      document.removeEventListener("keydown", startMusicOnInteraction);
     };
-   
-    document.addEventListener('click', startMusicOnInteraction);
-    document.addEventListener('keydown', startMusicOnInteraction);
-   
+
+    document.addEventListener("click", startMusicOnInteraction);
+    document.addEventListener("keydown", startMusicOnInteraction);
+
     return () => {
-      document.removeEventListener('click', startMusicOnInteraction);
-      document.removeEventListener('keydown', startMusicOnInteraction);
+      document.removeEventListener("click", startMusicOnInteraction);
+      document.removeEventListener("keydown", startMusicOnInteraction);
     };
   }, [daylightMusic, nightMusic, isNightMode, isMuted]);
- 
+
   useEffect(() => {
     if (!daylightMusic || !nightMusic || !hasStartedRef.current) return;
-   
+
     if (isNightMode) {
       daylightMusic.pause();
       nightMusic.currentTime = 0;
-      if (!isMuted) nightMusic.play().catch(() => {});
+
+      if (!isMuted) {
+        nightMusic
+          .play()
+          .catch(() => alert("Night music switch failed"));
+      }
     } else {
       nightMusic.pause();
       daylightMusic.currentTime = 0;
-      if (!isMuted) daylightMusic.play().catch(() => {});
+
+      if (!isMuted) {
+        daylightMusic
+          .play()
+          .catch(() => alert("Day music switch failed"));
+      }
     }
   }, [isNightMode, daylightMusic, nightMusic, isMuted]);
- 
+
   useEffect(() => {
     if (!hasStartedRef.current) return;
-   
+
     if (isMuted) {
       if (daylightMusic) daylightMusic.pause();
       if (nightMusic) nightMusic.pause();
     } else {
       if (isNightMode && nightMusic) {
-        nightMusic.play().catch(() => {});
+        nightMusic
+          .play()
+          .catch(() => alert("Night music unmute failed"));
       } else if (!isNightMode && daylightMusic) {
-        daylightMusic.play().catch(() => {});
+        daylightMusic
+          .play()
+          .catch(() => alert("Day music unmute failed"));
       }
     }
   }, [isMuted, daylightMusic, nightMusic, isNightMode]);
- 
+
   return null;
 }
-
-function Scene() {
-  const { mode } = useRollerCoaster();
- 
-  return (
-    <>
-      <Sky />
-      <BuildCamera />
-      <RideCamera />
-     
-      <Suspense fallback={null}>
-        <Ground />
-        <TrackBuilder />
-      </Suspense>
-    </>
-  );
-}
-
-function App() {
-  return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
-      <MusicController />
-      <Canvas
-        shadows
-        camera={{
-          position: [20, 15, 20],
-          fov: 60,
-          near: 0.1,
-          far: 1000
-        }}
-        gl={{
-          antialias: true,
-          powerPreference: "default"
-        }}
-      >
-        <Scene />
-      </Canvas>
-      <GameUI />
-    </div>
-  );
-}
-
-export default App;
